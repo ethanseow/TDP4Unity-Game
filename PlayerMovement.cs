@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,6 +17,8 @@ public class PlayerMovement : MonoBehaviour
     public float jumpHeight;
     public float movementSpeed;
     public float gravity;
+
+    private bool jump;
 
     private Vector2 cursorPos;
     private Vector2 playerPos; //player position in Vector2
@@ -42,21 +45,26 @@ public class PlayerMovement : MonoBehaviour
         {
             combatController.Fire(playerTransform.position, shootAngle + offset);
         }
-        Debug.Log("Grounded: " + isGrounded());
+        //Debug.Log("Grounded: " + isGrounded());
 
-        
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            jump = true;
+
+        }
     }
     void FixedUpdate()
     {
+        
+        Jump();
         MovementInput();
         SetMovement();
-        Jump();
     }
 
     void MovementInput()
     {
         horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
-        
+
         playerMovement = horizontalMovement + verticalMovement;
         playerMovement = playerMovement * Time.deltaTime;
         //counter += Time.fixedDeltaTime;
@@ -68,14 +76,18 @@ public class PlayerMovement : MonoBehaviour
     }
     void Jump()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded())
+        if (jump && isGrounded())
         {
             verticalMovement = Vector2.up * jumpHeight;
         }
         else
         {
             verticalMovement -= Vector2.up * gravity;
-            
+
+        }
+        if (isGrounded())
+        {
+            jump = false;
         }
     }
     private bool isGrounded()
