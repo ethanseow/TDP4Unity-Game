@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     private Rigidbody2D rb;
+    private BoxCollider2D playerCollider;
     private Vector2 horizontalMovement = Vector2.zero;
     private Vector2 playerMovement = Vector2.zero;
     private Vector2 verticalMovement = Vector2.zero;
@@ -15,56 +16,73 @@ public class PlayerMovement : MonoBehaviour
     public float jumpHeight;
     public float movementSpeed;
     public float gravity;
-    private float count;
+
     private Vector2 cursorPos;
     private Vector2 playerPos; //player position in Vector2
     [Range(-180f, 180f)] public float offset; //angle offset of projectile
+
+    //Groundcheck
+    [SerializeField] private LayerMask groundLayer;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
         playerTransform = GetComponent<Transform>();
     }
 
     void Update()
     {
-        Aim();
+        cursorPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        playerPos = new Vector2(transform.position.x, transform.position.y);
+        Vector2 diff = cursorPos - playerPos;
+        float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+        if (Input.GetKeyDown(KeyCode.Mouse0))
+        {
+            combatController.Fire(playerTransform.position, shootAngle + offset);
+        }
+        Debug.Log("Grounded: " + isGrounded());
+
+        
     }
     void FixedUpdate()
     {
         MovementInput();
         SetMovement();
+        Jump();
     }
 
     void MovementInput()
     {
         horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            verticalMovement = Vector2.up * jumpHeight;
-            count = 0;
-        }
-        else
-        {
-            verticalMovement -= Vector2.up * gravity * count;
-        }
+        
         playerMovement = horizontalMovement + verticalMovement;
         playerMovement = playerMovement * Time.deltaTime;
-        count += Time.fixedDeltaTime;
+        //counter += Time.fixedDeltaTime;
     }
+
     void SetMovement()
     {
         rb.MovePosition(new Vector2(rb.position.x, transform.position.y) + playerMovement);
     }
-    void Aim()
+    void Jump()
     {
-        cursorPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        playerPos = new Vector2(transform.position.x, transform.position.y);
-        Vector2 diff = cursorPos - playerPos;
-        float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if (Input.GetKey(KeyCode.Mouse0))
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded())
         {
-            combatController.Fire(playerTransform.position, shootAngle + offset);
+            verticalMovement = Vector2.up * jumpHeight;
         }
+        else
+        {
+            verticalMovement -= Vector2.up * gravity;
+            
+        }
+    }
+    private bool isGrounded()
+    {
+        RaycastHit2D groundCheck = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * 0.2f, groundLayer);
+        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y));
+
+        return groundCheck.collider != null;
     }
 }
