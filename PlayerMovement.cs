@@ -10,14 +10,14 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 horizontalMovement = Vector2.zero;
     private Vector2 playerMovement = Vector2.zero;
     private Vector2 verticalMovement = Vector2.zero;
-    private Transform playerTransform;
-
     private CombatControl combatController;
 
+    //Physics
     public float jumpHeight;
     public float movementSpeed;
     public float gravity;
 
+    //If space if pressed
     private bool jump;
 
     private Vector2 cursorPos;
@@ -26,13 +26,17 @@ public class PlayerMovement : MonoBehaviour
 
     //Groundcheck
     [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Transform groundChecker;
+    [Range(0, 1)][SerializeField] private float rayLength;
+
+
+
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
-        playerTransform = GetComponent<Transform>();
     }
 
     void Update()
@@ -41,16 +45,18 @@ public class PlayerMovement : MonoBehaviour
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if (Input.GetKeyDown(KeyCode.Mouse0))
+        if(combatController.getShotCount() <= combatController.getRate())
         {
-            combatController.Fire(playerTransform.position, shootAngle + offset);
+            if (Input.GetKeyDown(KeyCode.Mouse0))
+            {
+                combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
+            }
         }
-        //Debug.Log("Grounded: " + isGrounded());
+        
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
             jump = true;
-
         }
     }
     void FixedUpdate()
@@ -67,7 +73,6 @@ public class PlayerMovement : MonoBehaviour
 
         playerMovement = horizontalMovement + verticalMovement;
         playerMovement = playerMovement * Time.deltaTime;
-        //counter += Time.fixedDeltaTime;
     }
 
     void SetMovement()
@@ -76,25 +81,41 @@ public class PlayerMovement : MonoBehaviour
     }
     void Jump()
     {
-        if (jump && isGrounded())
+        if (isGrounded())
         {
-            verticalMovement = Vector2.up * jumpHeight;
+            if (jump)
+            {
+                verticalMovement = Vector2.up * jumpHeight;
+            }
+            else
+            {
+                verticalMovement = Vector2.zero;
+            }
         }
         else
         {
             verticalMovement -= Vector2.up * gravity;
-
-        }
-        if (isGrounded())
-        {
             jump = false;
         }
+
+        if (topCollision())
+        {
+            verticalMovement = Vector2.zero;
+            verticalMovement -= Vector2.up * gravity;
+        }
+
     }
     private bool isGrounded()
     {
-        RaycastHit2D groundCheck = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * 0.2f, groundLayer);
-        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y));
+        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength, groundLayer);
+        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y * rayLength));
 
         return groundCheck.collider != null;
+    }
+    private bool topCollision()
+    {
+        RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, groundLayer);
+
+        return topCheck.collider != null;
     }
 }

@@ -5,9 +5,9 @@ using UnityEngine;
 public class Weapon : MonoBehaviour
 {
 
-    [Range(0, 10f)] [SerializeField] private float speed;
-    [Range(0, 10f)] [SerializeField] private float range;
-    [Range(0, 10f)] [SerializeField] private float fireRate;
+    [Range(0, 100f)] [SerializeField] private float speed;
+    [Range(0, 100f)] [SerializeField] private float range;
+    [Range(0, 10f)] [SerializeField] private int fireRate;
 
 
     private Vector2 startingPos; //playerPos in Vector2
@@ -32,5 +32,15 @@ public class Weapon : MonoBehaviour
     private void destroy()
     {
         Destroy(gameObject);
+    }
+
+    public int getFireRate()
+    {
+        return fireRate;
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        destroy();
     }
 }

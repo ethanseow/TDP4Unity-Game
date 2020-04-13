@@ -5,15 +5,24 @@ using UnityEngine;
 public class CameraLook : MonoBehaviour
 {
     [SerializeField] private GameObject player;
+    private Camera cam;
 
-    [Range(0, 10)] public float dampSpeed;
-    //[Range(0, 10)] public float moveSpeed;
+    [Range(0, 0.5f)] public float dampSpeed;
 
-    private Vector2 dir;
+    private const float Z_POS = -10;
 
-    void Update()
+    private Vector3 pos;
+    private Vector3 dir; //direction from camera to player
+
+    void Start()
     {
-        dir = (transform.position - player.transform.position).normalized;
-        transform.position = Vector2.SmoothDamp(transform.position, player.transform.position, ref dir, dampSpeed);
+        cam = GetComponent<Camera>();
+    }
+    void FixedUpdate()
+    {
+        pos = new Vector3(player.transform.position.x, player.transform.position.y, Z_POS);
+        dir = (pos - transform.position).normalized;
+        
+        transform.position = Vector3.SmoothDamp(transform.position, pos, ref dir, dampSpeed);
     }
 }
