@@ -4,67 +4,93 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private Rigidbody2D rb;
     private Vector2 horizontalMovement = Vector2.zero;
     private Vector2 playerMovement = Vector2.zero;
     private Vector2 verticalMovement = Vector2.zero;
+
+    private Rigidbody2D rb;
+    private BoxCollider2D playerCollider;
     private Transform playerTransform;
 
     private CombatControl combatController;
 
-    public float jumpHeight;
-    public float movementSpeed;
-    public float gravity;
-    private float count;
+    private bool isJumping;
+
     private Vector2 cursorPos;
-    private Vector2 playerPos; //player position in Vector2
-    [Range(-180f, 180f)] public float offset; //angle offset of projectile
-    void Start()
+    private Vector2 playerPos;
+    [Range(-180f, 180f)] public float offset;
+
+    [SerializeField] LayerMask groundLayer = 0;
+    [SerializeField] float jumpHeight = 0;
+    [SerializeField] float movementSpeed = 0;
+    [SerializeField] float gravity = 0;
+    private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
         playerTransform = GetComponent<Transform>();
     }
-
-    void Update()
-    {
-        Aim();
-    }
-    void FixedUpdate()
-    {
-        MovementInput();
-        SetMovement();
-    }
-
-    void MovementInput()
-    {
-        horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            verticalMovement = Vector2.up * jumpHeight;
-            count = 0;
-        }
-        else
-        {
-            verticalMovement -= Vector2.up * gravity * count;
-        }
-        playerMovement = horizontalMovement + verticalMovement;
-        playerMovement = playerMovement * Time.deltaTime;
-        count += Time.fixedDeltaTime;
-    }
-    void SetMovement()
-    {
-        rb.MovePosition(new Vector2(rb.position.x, transform.position.y) + playerMovement);
-    }
-    void Aim()
+    private void Update()
     {
         cursorPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if (Input.GetKey(KeyCode.Mouse0))
+        if (Input.GetKeyDown(KeyCode.Mouse0))
         {
             combatController.Fire(playerTransform.position, shootAngle + offset);
         }
+
+        if (Input.GetKey(KeyCode.Space))
+        {
+            isJumping = true;
+        }
     }
+    private void FixedUpdate()
+    {
+        MovementInput();
+        SetMovement();
+    }
+    private void MovementInput()
+    {
+        if (isGrounded())
+        {
+            if (isJumping)
+            {
+                verticalMovement = Vector2.up * jumpHeight;
+            }
+            else
+            {
+                verticalMovement = Vector2.down;
+            }
+        }
+        else
+        {
+            verticalMovement -= gravity * Vector2.up;
+            isJumping = false;
+        }
+        horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
+        playerMovement = horizontalMovement + verticalMovement;
+        playerMovement = playerMovement * Time.deltaTime;
+    }
+    private void SetMovement()
+    {
+        rb.MovePosition(new Vector2(rb.position.x, transform.position.y) + playerMovement);
+    }
+    private bool isGrounded()
+    {
+        RaycastHit2D groundCheck = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * 0.05f, groundLayer);
+        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y));
+        return groundCheck.collider != null;
+    }
+    public void SetMovementSpeed(float setMovespeed)
+    {
+        movementSpeed = setMovespeed;
+    }
+    public float GetMovementSpeed()
+    {
+        return movementSpeed;
+    }
+    
 }

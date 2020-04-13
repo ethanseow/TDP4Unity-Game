@@ -4,11 +4,7 @@ using UnityEngine;
 
 public class CombatControl : MonoBehaviour
 {
-    [SerializeField] private GameObject weapon;
-    void Start()
-    {
-
-    }
+    [SerializeField] GameObject weapon = null;
 
     public void Fire(Vector2 dir, float angle)
     {
