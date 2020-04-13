@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if (Input.GetKeyDown(KeyCode.Mouse0))
+        if (Input.GetKey(KeyCode.Mouse0) && combatController.canFire())
         {
             combatController.Fire(playerTransform.position, shootAngle + offset);
         }

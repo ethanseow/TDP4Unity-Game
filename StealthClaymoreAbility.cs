@@ -8,30 +8,59 @@ public class StealthClaymoreAbility : MonoBehaviour
     private SpriteRenderer sprite;
     private bool loadingTrap = false;
     private bool startedTimer = false;
+    private bool touchedSomething = false;
     private Rigidbody2D rb;
+    private float count = 1;
+    private float throwSpeed = 0;
+    private float throwHeight = 0;
+    private float maxHeight = int.MinValue;
+    private float initMouseHeight;
 
-
+    [SerializeField] float amt = 0;
+    [SerializeField] float timespeed = 1;
     [SerializeField] float loadingTime = 0;
     [SerializeField] float percentSlow = 0;
     [SerializeField] LayerMask groundLayer = 0;
     [SerializeField] LayerMask playerLayer = 0;
     private void Start()
     {
+        throwSpeed = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
+        throwHeight = (Camera.main.ScreenToWorldPoint(Input.mousePosition).y - transform.position.y) * 2;
+        if (throwHeight < 0)
+        {
+            count = 0;
+            throwHeight *= -1;
+        }
+        else
+        {
+            initMouseHeight = Camera.main.ScreenToWorldPoint(Input.mousePosition).y;
+            var currAmt = (initMouseHeight - transform.position.y) * 0.1447273f;
+            transform.position = new Vector2(transform.position.x, transform.position.y + currAmt);
+        }
         rb = GetComponent<Rigidbody2D>();
-        rb.AddForce(new Vector2(0.5f, 0.5f));
+        rb.velocity = new Vector2(throwSpeed, count * throwHeight);
         sprite = GetComponent<SpriteRenderer>();
         playerCollider = GetComponent<BoxCollider2D>();
 
     }
     private void FixedUpdate()
     {
-        if (!isGrounded()) { return; }
+        if (!touchedSomething) {
+            maxHeight = Mathf.Max(maxHeight, transform.position.y);
+            count -= Time.fixedDeltaTime * timespeed;
+            rb.velocity = new Vector2(throwSpeed * timespeed, count * timespeed * throwHeight);
+            return;
+        }
         if (loadingTrap) {
             return;
         } 
         else if(!startedTimer) {
             StartTimer(loadingTime);
             startedTimer = true;
+            rb.velocity = Vector2.zero;
+            Debug.Log(maxHeight + " maxheight");
+            Debug.Log(initMouseHeight + " initHeight");
+            Debug.Log(initMouseHeight - maxHeight);
             return;
         }
         RaycastHit2D boxCast = Physics2D.BoxCast(transform.position, new Vector2(1, 0.01f), 0, Vector2.up, 0.2f, playerLayer);
@@ -43,11 +72,9 @@ public class StealthClaymoreAbility : MonoBehaviour
             Destroy(this.gameObject);
         }
     }
-    private bool isGrounded()
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        RaycastHit2D groundCheck = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * 0.05f, groundLayer);
-        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y));
-        return groundCheck.collider != null;
+        touchedSomething = true;
     }
     private void StartTimer(float time)
     {
