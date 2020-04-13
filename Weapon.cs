@@ -7,7 +7,7 @@ public class Weapon : MonoBehaviour
 
     [Range(0, 100f)] [SerializeField] private float speed;
     [Range(0, 100f)] [SerializeField] private float range;
-    [Range(0, 10f)] [SerializeField] private int fireRate;
+    [Range(0, 10f)] [SerializeField] private float fireRate; //fires a shot every x seconds
 
 
     private Vector2 startingPos; //playerPos in Vector2
@@ -34,7 +34,7 @@ public class Weapon : MonoBehaviour
         Destroy(gameObject);
     }
 
-    public int getFireRate()
+    public float getFireRate()
     {
         return fireRate;
     }

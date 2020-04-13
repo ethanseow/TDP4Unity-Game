@@ -7,38 +7,31 @@ public class CombatControl : MonoBehaviour
     [SerializeField] private GameObject weapon;
     private Weapon weaponStats;
 
-    private int shotCount;
-    private float timer = 0; //if timer exceeds 1 second then reset shotCount
+    private bool canShoot;
+    private bool timing;
 
     void Start()
     {
-        shotCount = 0;
+        canShoot = true;
         weaponStats = weapon.GetComponent<Weapon>();
-        StartCoroutine(shotTimer());
+        
     }
 
     public void Fire(Vector2 pos, float angle)
     {
-        shotCount++;
+        canShoot = false;
+        StartCoroutine(shotTimer());
         GameObject projectile = Instantiate(weapon, pos, Quaternion.Euler(0f, 0f, angle));
     }
 
-    public int getShotCount()
+    public bool canFire()
     {
-        return shotCount;
-    }
-    public int getRate()
-    {
-        return weaponStats.getFireRate();
+        return canShoot;
     }
 
     IEnumerator shotTimer()
     {
-        while (true)
-        {
-            yield return new WaitForSeconds(1);
-
-            shotCount = 0;
-        }
+        yield return new WaitForSeconds(weaponStats.getFireRate());
+        canShoot = true;
     }
 }

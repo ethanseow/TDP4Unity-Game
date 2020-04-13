@@ -30,8 +30,6 @@ public class PlayerMovement : MonoBehaviour
     [Range(0, 1)][SerializeField] private float rayLength;
 
 
-
-
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -45,14 +43,12 @@ public class PlayerMovement : MonoBehaviour
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if(combatController.getShotCount() <= combatController.getRate())
+        if (Input.GetKeyDown(KeyCode.Mouse0) && combatController.canFire())
         {
-            if (Input.GetKeyDown(KeyCode.Mouse0))
-            {
-                combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
-            }
+            combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
         }
-        
+
+        Debug.Log(combatController.canFire());
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
