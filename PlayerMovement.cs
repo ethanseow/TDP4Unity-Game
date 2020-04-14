@@ -43,7 +43,7 @@ public class PlayerMovement : MonoBehaviour
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-        if (Input.GetKeyDown(KeyCode.Mouse0) && combatController.canFire())
+        if (Input.GetKey(KeyCode.Mouse0) && combatController.canFire())
         {
             combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
         }
@@ -113,5 +113,14 @@ public class PlayerMovement : MonoBehaviour
         RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, groundLayer);
 
         return topCheck.collider != null;
+    }
+
+    public void SetMovementSpeed(float setMovespeed)
+    {
+        movementSpeed = setMovespeed;
+    }
+    public float GetMovementSpeed()
+    {
+        return movementSpeed;
     }
 }
