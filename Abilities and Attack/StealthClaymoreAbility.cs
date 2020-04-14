@@ -16,7 +16,6 @@ public class StealthClaymoreAbility : MonoBehaviour
     private float maxHeight = int.MinValue;
     private float initMouseHeight;
 
-    [SerializeField] float amt = 0;
     [SerializeField] float timespeed = 1;
     [SerializeField] float loadingTime = 0;
     [SerializeField] float percentSlow = 0;

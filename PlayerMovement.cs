@@ -4,34 +4,43 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    private Rigidbody2D rb;
+    private BoxCollider2D playerCollider;
     private Vector2 horizontalMovement = Vector2.zero;
     private Vector2 playerMovement = Vector2.zero;
     private Vector2 verticalMovement = Vector2.zero;
-
-    private Rigidbody2D rb;
-    private BoxCollider2D playerCollider;
-    private Transform playerTransform;
-
     private CombatControl combatController;
 
-    private bool isJumping;
+    //Physics
+    public float jumpHeight;
+    public float movementSpeed;
+    public float gravity;
+
+    //If space if pressed
+    private bool jump;
+    private bool canMove = true;
+    private bool isMoving = false;
 
     private Vector2 cursorPos;
-    private Vector2 playerPos;
-    [Range(-180f, 180f)] public float offset;
+    private Vector2 playerPos; //player position in Vector2
+    [Range(-180f, 180f)] public float offset; //angle offset of projectile
 
-    [SerializeField] LayerMask groundLayer = 0;
-    [SerializeField] float jumpHeight = 0;
-    [SerializeField] float movementSpeed = 0;
-    [SerializeField] float gravity = 0;
-    private void Start()
+    //Groundcheck
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private LayerMask slopeLayer;
+    [SerializeField] private LayerMask slopeLayer2;
+    [SerializeField] private Transform groundChecker;
+    [Range(0, 1)] [SerializeField] private float rayLength;
+
+
+    void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
-        playerTransform = GetComponent<Transform>();
     }
-    private void Update()
+
+    void Update()
     {
         cursorPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         playerPos = new Vector2(transform.position.x, transform.position.y);
@@ -39,51 +48,98 @@ public class PlayerMovement : MonoBehaviour
         float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
         if (Input.GetKey(KeyCode.Mouse0) && combatController.canFire())
         {
-            combatController.Fire(playerTransform.position, shootAngle + offset);
+            combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
         }
-
-        if (Input.GetKey(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            isJumping = true;
+            jump = true;
         }
     }
-    private void FixedUpdate()
+    void FixedUpdate()
     {
+        if (!canMove) { return; }
+        Jump();
         MovementInput();
         SetMovement();
     }
-    private void MovementInput()
+
+    void MovementInput()
+    {
+        horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
+        if(horizontalMovement != Vector2.zero) {
+            isMoving = true;
+        }
+        else
+        {
+            isMoving = false;
+        }
+        playerMovement = horizontalMovement + verticalMovement;
+        playerMovement = playerMovement * Time.deltaTime;
+    }
+
+    void SetMovement()
+    {
+        rb.MovePosition(new Vector2(rb.position.x, rb.position.y) + playerMovement);
+    }
+    void Jump()
     {
         if (isGrounded())
         {
-            if (isJumping)
+            if (jump)
             {
                 verticalMovement = Vector2.up * jumpHeight;
             }
             else
             {
-                verticalMovement = Vector2.down;
+                verticalMovement = Vector2.zero;
             }
         }
         else
         {
-            verticalMovement -= gravity * Vector2.up;
-            isJumping = false;
+            verticalMovement -= Vector2.up * gravity;
+            jump = false;
         }
-        horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
-        playerMovement = horizontalMovement + verticalMovement;
-        playerMovement = playerMovement * Time.deltaTime;
-    }
-    private void SetMovement()
-    {
-        rb.MovePosition(new Vector2(rb.position.x, transform.position.y) + playerMovement);
+
+        if (collidingWithTop())
+        {
+            verticalMovement = Vector2.zero;
+            verticalMovement -= Vector2.up * gravity;
+        }
+        if (!jump)
+        {
+            isGrounded();
+        }
     }
     private bool isGrounded()
     {
-        RaycastHit2D groundCheck = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * 0.05f, groundLayer);
-        Debug.DrawRay(playerCollider.bounds.center, Vector2.down * (playerCollider.bounds.size.y));
+        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength, groundLayer);
+        
+        RaycastHit2D hit = Physics2D.Raycast(transform.position + new Vector3(0.5f, -0.5f, 0), Vector2.down, 1 + rayLength, slopeLayer);
+        RaycastHit2D hit2 = Physics2D.Raycast(transform.position + new Vector3(-0.5f, -0.5f, 0), Vector2.down, 1 + rayLength, slopeLayer2);
+        Debug.DrawLine(transform.position + new Vector3(0.5f,-0.5f,0), transform.position + new Vector3(0.5f, -0.5f, 0) + (playerCollider.bounds.size.y + rayLength) * Vector3.down, Color.red);
+        
+        if (hit.collider != null)
+        {
+            float distance = (transform.position + new Vector3(0.5f, -0.5f, 0)).y - hit.point.y;
+            Debug.Log(distance);
+            verticalMovement = Vector2.up * -70 * distance;
+            return true;
+        }else if (hit2.collider != null)
+        {
+            float distance = (transform.position + new Vector3(-0.5f, -0.5f, 0)).y - hit2.point.y;
+            Debug.Log(distance);
+            verticalMovement = Vector2.up * -70 * distance;
+            return true;
+        }
         return groundCheck.collider != null;
     }
+    private bool collidingWithTop()
+    {
+        RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, groundLayer);
+
+        return topCheck.collider != null;
+    }
+
     public void SetMovementSpeed(float setMovespeed)
     {
         movementSpeed = setMovespeed;
@@ -92,5 +148,9 @@ public class PlayerMovement : MonoBehaviour
     {
         return movementSpeed;
     }
-    
+
+    public void SetAbleToMove(bool ableToMove)
+    {
+        canMove = ableToMove;
+    }
 }
