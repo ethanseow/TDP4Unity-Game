@@ -19,7 +19,6 @@ public class StealthClaymoreAbility : MonoBehaviour
     [SerializeField] float timespeed = 1;
     [SerializeField] float loadingTime = 0;
     [SerializeField] float percentSlow = 0;
-    [SerializeField] LayerMask groundLayer = 0;
     [SerializeField] LayerMask playerLayer = 0;
     private void Start()
     {

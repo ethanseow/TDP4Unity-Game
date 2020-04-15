@@ -108,10 +108,11 @@ public class PlayerMovement : MonoBehaviour
             verticalMovement -= Vector2.up * gravity;
             jump = false;
         }
-        // Debug.Log(collidingWithTop());
         if (collidingWithTop())
         {
-            verticalMovement = Vector2.zero;
+            if (verticalMovement.y > 0){
+                verticalMovement = Vector2.zero;
+            }
             verticalMovement -= Vector2.up * gravity;
         }
     }
@@ -127,11 +128,10 @@ public class PlayerMovement : MonoBehaviour
         Vector3 bottomLeftPointCollider = new Vector3(-transform.localScale.x / 2, -transform.localScale.y / 2, 0);
         RaycastHit2D rightHit = Physics2D.Raycast(transform.position + bottomRightPointCollider, Vector2.down, slopeRayLength, slopeLayer);
         RaycastHit2D leftHit = Physics2D.Raycast(transform.position + bottomLeftPointCollider, Vector2.down, slopeRayLength, slopeLayer2);
-        RaycastHit2D slopeCheck = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer);
-        RaycastHit2D slopeCheck2 = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer2);
+        RaycastHit2D slopeCheck = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer | slopeLayer2);
         // Debug.DrawLine(transform.position + bottomRightPointCollider, transform.position + bottomRightPointCollider + (slopeRayLength) * Vector3.down, Color.red);
         // Debug.DrawLine(transform.position + bottomLeftPointCollider, transform.position + bottomLeftPointCollider + (slopeRayLength) * Vector3.down, Color.red);
-        if (slopeCheck.collider != null || slopeCheck2.collider != null)
+        if (slopeCheck.collider != null)
         {
             var tempWasOnSlope = wasOnSlope;
             wasOnSlope = true;
@@ -157,10 +157,8 @@ public class PlayerMovement : MonoBehaviour
     }
     private bool collidingWithTop()
     {
-        RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength,groundLayer);
-        RaycastHit2D topCheckSlope = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, slopeLayer);
-        RaycastHit2D topCheckSlope2 = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, slopeLayer);
-        return topCheck.collider != null || topCheckSlope.collider != null || topCheckSlope2.collider != null;
+        RaycastHit2D topCheckSlopeAndGround = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, slopeLayer | groundLayer | slopeLayer2);
+        return topCheckSlopeAndGround.collider != null;
     }
 
     public void SetMovementSpeed(float setMovespeed)
