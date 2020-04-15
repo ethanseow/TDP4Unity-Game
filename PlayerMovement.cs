@@ -10,16 +10,20 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 playerMovement = Vector2.zero;
     private Vector2 verticalMovement = Vector2.zero;
     private CombatControl combatController;
+    private float prevRayLength;
 
     //Physics
     public float jumpHeight;
     public float movementSpeed;
     public float gravity;
 
+
     //If space if pressed
     private bool jump;
     private bool canMove = true;
     private bool isMoving = false;
+    private bool wasOnSlope = false;
+
 
     private Vector2 cursorPos;
     private Vector2 playerPos; //player position in Vector2
@@ -31,10 +35,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask slopeLayer2;
     [SerializeField] private Transform groundChecker;
     [Range(0, 1)] [SerializeField] private float rayLength;
+    [Range(0, 20)] [SerializeField] private float slopeRayLength;
 
 
     void Start()
     {
+        prevRayLength = slopeRayLength;
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
@@ -83,15 +89,18 @@ public class PlayerMovement : MonoBehaviour
     }
     void Jump()
     {
-        if (isGrounded())
+        if (isGrounded() || isSlopeGrounded())
         {
             if (jump)
             {
                 verticalMovement = Vector2.up * jumpHeight;
+                slopeRayLength = 0;
             }
             else
             {
                 verticalMovement = Vector2.zero;
+                isSlopeGrounded();
+                slopeRayLength = prevRayLength;
             }
         }
         else
@@ -99,45 +108,59 @@ public class PlayerMovement : MonoBehaviour
             verticalMovement -= Vector2.up * gravity;
             jump = false;
         }
-
+        // Debug.Log(collidingWithTop());
         if (collidingWithTop())
         {
             verticalMovement = Vector2.zero;
             verticalMovement -= Vector2.up * gravity;
         }
-        if (!jump)
-        {
-            isGrounded();
-        }
     }
     private bool isGrounded()
     {
-        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength, groundLayer);
-        
-        RaycastHit2D hit = Physics2D.Raycast(transform.position + new Vector3(0.5f, -0.5f, 0), Vector2.down, 1 + rayLength, slopeLayer);
-        RaycastHit2D hit2 = Physics2D.Raycast(transform.position + new Vector3(-0.5f, -0.5f, 0), Vector2.down, 1 + rayLength, slopeLayer2);
-        Debug.DrawLine(transform.position + new Vector3(0.5f,-0.5f,0), transform.position + new Vector3(0.5f, -0.5f, 0) + (playerCollider.bounds.size.y + rayLength) * Vector3.down, Color.red);
-        
-        if (hit.collider != null)
+        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength * 2, groundLayer);
+        return groundCheck.collider != null;
+    }
+
+    private bool isSlopeGrounded()
+    {
+        Vector3 bottomRightPointCollider = new Vector3(transform.localScale.x / 2, -transform.localScale.y / 2, 0);
+        Vector3 bottomLeftPointCollider = new Vector3(-transform.localScale.x / 2, -transform.localScale.y / 2, 0);
+        RaycastHit2D rightHit = Physics2D.Raycast(transform.position + bottomRightPointCollider, Vector2.down, slopeRayLength, slopeLayer);
+        RaycastHit2D leftHit = Physics2D.Raycast(transform.position + bottomLeftPointCollider, Vector2.down, slopeRayLength, slopeLayer2);
+        RaycastHit2D slopeCheck = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer);
+        RaycastHit2D slopeCheck2 = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer2);
+        // Debug.DrawLine(transform.position + bottomRightPointCollider, transform.position + bottomRightPointCollider + (slopeRayLength) * Vector3.down, Color.red);
+        // Debug.DrawLine(transform.position + bottomLeftPointCollider, transform.position + bottomLeftPointCollider + (slopeRayLength) * Vector3.down, Color.red);
+        if (slopeCheck.collider != null || slopeCheck2.collider != null)
         {
-            float distance = (transform.position + new Vector3(0.5f, -0.5f, 0)).y - hit.point.y;
-            Debug.Log(distance);
-            verticalMovement = Vector2.up * -70 * distance;
-            return true;
-        }else if (hit2.collider != null)
+            var tempWasOnSlope = wasOnSlope;
+            wasOnSlope = true;
+            if (!tempWasOnSlope)
+            {
+                return true;
+            }
+        }
+        if (rightHit.collider != null && wasOnSlope)
         {
-            float distance = (transform.position + new Vector3(-0.5f, -0.5f, 0)).y - hit2.point.y;
-            Debug.Log(distance);
+            float distance = (transform.position + bottomRightPointCollider).y - rightHit.point.y;
             verticalMovement = Vector2.up * -70 * distance;
             return true;
         }
-        return groundCheck.collider != null;
+        else if (leftHit.collider != null && wasOnSlope)
+        {
+            float distance = (transform.position + bottomLeftPointCollider).y - leftHit.point.y;
+            verticalMovement = Vector2.up * -70 * distance;
+            return true;
+        }
+        wasOnSlope = false;
+        return false;
     }
     private bool collidingWithTop()
     {
-        RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, groundLayer);
-
-        return topCheck.collider != null;
+        RaycastHit2D topCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength,groundLayer);
+        RaycastHit2D topCheckSlope = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, slopeLayer);
+        RaycastHit2D topCheckSlope2 = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.up, playerCollider.bounds.size.y * rayLength, slopeLayer);
+        return topCheck.collider != null || topCheckSlope.collider != null || topCheckSlope2.collider != null;
     }
 
     public void SetMovementSpeed(float setMovespeed)
