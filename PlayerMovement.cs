@@ -34,6 +34,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask slopeLayer;
     [SerializeField] private LayerMask slopeLayer2;
     [SerializeField] private Transform groundChecker;
+    [SerializeField] private float slideSpeedMultiplier;
     [Range(0, 1)] [SerializeField] private float rayLength;
     [Range(0, 20)] [SerializeField] private float slopeRayLength;
 
@@ -71,7 +72,34 @@ public class PlayerMovement : MonoBehaviour
 
     void MovementInput()
     {
-        horizontalMovement = Vector2.right * Input.GetAxisRaw("Horizontal") * movementSpeed;
+        Vector2 movementVector = Vector3.right;
+        float leftRightMovement = Input.GetAxisRaw("Horizontal");
+        RaycastHit2D hitInfoRight = Physics2D.Raycast(transform.position, Vector2.down, slopeRayLength, slopeLayer | slopeLayer2);
+        if(hitInfoRight.collider != null)
+        {
+            float angle = hitInfoRight.collider.transform.eulerAngles.z;
+            if(360 - angle < 180)
+            {
+                angle = -(360 - angle);
+            }
+            float slideSpeed = (-angle / 90) * slideSpeedMultiplier;
+            movementVector = new Vector2(Mathf.Cos(Mathf.Deg2Rad * angle), Mathf.Sin(Mathf.Deg2Rad * angle));
+            if(angle < 0 && leftRightMovement < 0 || angle > 0 && leftRightMovement > 0)
+            {
+                // going up ramp, slower
+                leftRightMovement += slideSpeed;
+            }
+            else if(angle > 0 && leftRightMovement < 0 || angle < 0 && leftRightMovement > 0){
+                // going down ramp, faster
+                leftRightMovement -= slideSpeed;
+            }
+            else
+            {
+                // slide down
+                leftRightMovement = slideSpeed;
+            }
+        }
+        horizontalMovement = movementVector * leftRightMovement * movementSpeed;
         if(horizontalMovement != Vector2.zero) {
             isMoving = true;
         }
@@ -80,7 +108,7 @@ public class PlayerMovement : MonoBehaviour
             isMoving = false;
         }
         playerMovement = horizontalMovement + verticalMovement;
-        playerMovement = playerMovement * Time.deltaTime;
+        playerMovement = playerMovement * Time.fixedDeltaTime;
     }
 
     void SetMovement()
@@ -89,7 +117,7 @@ public class PlayerMovement : MonoBehaviour
     }
     void Jump()
     {
-        if (isGrounded() || isSlopeGrounded())
+        if (isGrounded())
         {
             if (jump)
             {
@@ -99,7 +127,6 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 verticalMovement = Vector2.zero;
-                isSlopeGrounded();
                 slopeRayLength = prevRayLength;
             }
         }
@@ -118,42 +145,8 @@ public class PlayerMovement : MonoBehaviour
     }
     private bool isGrounded()
     {
-        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength * 2, groundLayer);
+        RaycastHit2D groundCheck = Physics2D.BoxCast(groundChecker.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength * 2, groundLayer | slopeLayer | slopeLayer2);
         return groundCheck.collider != null;
-    }
-
-    private bool isSlopeGrounded()
-    {
-        Vector3 bottomRightPointCollider = new Vector3(transform.localScale.x / 2, -transform.localScale.y / 2, 0);
-        Vector3 bottomLeftPointCollider = new Vector3(-transform.localScale.x / 2, -transform.localScale.y / 2, 0);
-        RaycastHit2D rightHit = Physics2D.Raycast(transform.position + bottomRightPointCollider, Vector2.down, slopeRayLength, slopeLayer);
-        RaycastHit2D leftHit = Physics2D.Raycast(transform.position + bottomLeftPointCollider, Vector2.down, slopeRayLength, slopeLayer2);
-        RaycastHit2D slopeCheck = Physics2D.BoxCast(transform.position, playerCollider.bounds.size, 0, Vector2.down, playerCollider.bounds.size.y * rayLength / 2, slopeLayer | slopeLayer2);
-        // Debug.DrawLine(transform.position + bottomRightPointCollider, transform.position + bottomRightPointCollider + (slopeRayLength) * Vector3.down, Color.red);
-        // Debug.DrawLine(transform.position + bottomLeftPointCollider, transform.position + bottomLeftPointCollider + (slopeRayLength) * Vector3.down, Color.red);
-        if (slopeCheck.collider != null)
-        {
-            var tempWasOnSlope = wasOnSlope;
-            wasOnSlope = true;
-            if (!tempWasOnSlope)
-            {
-                return true;
-            }
-        }
-        if (rightHit.collider != null && wasOnSlope)
-        {
-            float distance = (transform.position + bottomRightPointCollider).y - rightHit.point.y;
-            verticalMovement = Vector2.up * -70 * distance;
-            return true;
-        }
-        else if (leftHit.collider != null && wasOnSlope)
-        {
-            float distance = (transform.position + bottomLeftPointCollider).y - leftHit.point.y;
-            verticalMovement = Vector2.up * -70 * distance;
-            return true;
-        }
-        wasOnSlope = false;
-        return false;
     }
     private bool collidingWithTop()
     {
