@@ -41,7 +41,7 @@ public class PlayerMove : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
-            combatController.Fire(pos, shootAngle + offset);
+            combatController.Fire();
         }
         Debug.Log(shootAngle);
         arm.transform.rotation = Quaternion.Euler(0, 0, shootAngle);

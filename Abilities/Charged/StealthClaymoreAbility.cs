@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class StealthClaymoreAbility : MonoBehaviour
+public class StealthClaymoreAbility : ChargedAbilities
 {
     private RaycastHit hit;
     private BoxCollider2D playerCollider;
@@ -23,8 +23,15 @@ public class StealthClaymoreAbility : MonoBehaviour
     [SerializeField] float percentSlow = 0;
     [SerializeField] LayerMask groundLayer = 0;
     [SerializeField] LayerMask playerLayer = 0;
+
+
     private void Start()
     {
+
+
+        Name = "Stealth Claymore"; //Sets Ability name 
+
+
         throwSpeed = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
         throwHeight = (Camera.main.ScreenToWorldPoint(Input.mousePosition).y - transform.position.y) * 2;
         if (throwHeight < 0)
@@ -42,7 +49,6 @@ public class StealthClaymoreAbility : MonoBehaviour
         rb.velocity = new Vector2(throwSpeed, count * throwHeight);
         sprite = GetComponent<SpriteRenderer>();
         playerCollider = GetComponent<BoxCollider2D>();
-
     }
     private void FixedUpdate()
     {
@@ -62,9 +68,6 @@ public class StealthClaymoreAbility : MonoBehaviour
             StartTimer(loadingTime);
             startedTimer = true;
             rb.velocity = Vector2.zero;
-            Debug.Log(maxHeight + " maxheight");
-            Debug.Log(initMouseHeight + " initHeight");
-            Debug.Log(initMouseHeight - maxHeight);
             return;
         }
         RaycastHit2D boxCast = Physics2D.BoxCast(transform.position, new Vector2(1, 0.01f), 0, Vector2.up, 0.2f, playerLayer);
@@ -93,5 +96,11 @@ public class StealthClaymoreAbility : MonoBehaviour
         loadingTrap = true;
         yield return new WaitForSecondsRealtime(time);
         loadingTrap = false;
+    }
+
+    public override void Start_Ability(Vector3 pos)
+    {
+        Debug.Log("Bomb");
+        GameObject basicAbilityGameObject = Instantiate(this.gameObject, pos, new Quaternion(0, 0, 0, 0));
     }
 }

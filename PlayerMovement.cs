@@ -28,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 cursorPos;
     private Vector2 playerPos; //player position in Vector2
     [Range(-180f, 180f)] public float offset; //angle offset of projectile
+    private float shootAngle; //Angle of mouse from player
 
     //Groundcheck
     [SerializeField] private LayerMask groundLayer;
@@ -45,6 +46,7 @@ public class PlayerMovement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<BoxCollider2D>();
         combatController = GetComponent<CombatControl>();
+
     }
 
     void Update()
@@ -52,10 +54,9 @@ public class PlayerMovement : MonoBehaviour
         cursorPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         playerPos = new Vector2(transform.position.x, transform.position.y);
         Vector2 diff = cursorPos - playerPos;
-        float shootAngle = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
         if (Input.GetKey(KeyCode.Mouse0) && combatController.canFire())
         {
-            combatController.Fire(playerPos + diff.normalized, shootAngle + offset);
+            combatController.Fire();
         }
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -64,7 +65,9 @@ public class PlayerMovement : MonoBehaviour
     }
     void FixedUpdate()
     {
-        if (!canMove) { return; }
+        if (!canMove) { 
+            return;
+        }
         Jump();
         MovementInput();
         SetMovement();
@@ -167,7 +170,6 @@ public class PlayerMovement : MonoBehaviour
     {
         return movementSpeed;
     }
-
     public void SetAbleToMove(bool ableToMove)
     {
         canMove = ableToMove;
